@@ -43,7 +43,7 @@ traverse(ast, {
                     }
                     if (path.node.type === 'CallExpression') {
                         fn = path.node.arguments[0];
-                        deps = path.node.arguments[0];
+                        deps = path.node.arguments[1];
 
                         stopTraverse = true;
                     }
@@ -56,17 +56,22 @@ traverse(ast, {
             }
 
             if (fn.type !== 'ArrowFunctionExpression' && fn.type !== 'FunctionExpression') {
+                // nothing to optimise
+                // + if prevents from second pass 
+                // (when we replace variable below, 
+                //  it tries to traverse through this code too and can stuck at useCallback call,
+                //  hence can go to an infinite loop)
                 return;
             }
 
             const buildUseCallbackOptimised = template(`
-const ${variableName}Ref = React.useRef(null);
+const ${variableName}GeneratedRef = React.useRef(null);
 
-if (${variableName}Ref.current == null) {
-    ${variableName}Ref.current = CB;
+if (${variableName}GeneratedRef.current == null) {
+    ${variableName}GeneratedRef.current = CB;
 }
 
-const ${variableName} = React.useCallback(${variableName}Ref.current, DEPS);
+const ${variableName} = React.useCallback(${variableName}GeneratedRef.current, DEPS);
 
 `);
 
